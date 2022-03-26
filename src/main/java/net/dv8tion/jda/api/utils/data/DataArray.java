@@ -22,6 +22,9 @@ import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.type.CollectionType;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
+import com.fasterxml.jackson.dataformat.yaml.YAMLParser;
 import net.dv8tion.jda.api.exceptions.ParsingException;
 import net.dv8tion.jda.api.utils.data.etf.ExTermDecoder;
 import net.dv8tion.jda.api.utils.data.etf.ExTermEncoder;
@@ -54,6 +57,7 @@ public class DataArray implements Iterable<Object>, SerializableArray
 {
     private static final Logger log = LoggerFactory.getLogger(DataObject.class);
     private static final ObjectMapper mapper;
+    private static final ObjectMapper yamlMapper;
     private static final SimpleModule module;
     private static final CollectionType listType;
 
@@ -64,6 +68,8 @@ public class DataArray implements Iterable<Object>, SerializableArray
         module.addAbstractTypeMapping(Map.class, HashMap.class);
         module.addAbstractTypeMapping(List.class, ArrayList.class);
         mapper.registerModule(module);
+        yamlMapper = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
+        yamlMapper.findAndRegisterModules();
         listType = mapper.getTypeFactory().constructRawCollectionType(ArrayList.class);
     }
 
@@ -119,6 +125,102 @@ public class DataArray implements Iterable<Object>, SerializableArray
         try
         {
             return new DataArray(mapper.readValue(json, listType));
+        }
+        catch (IOException e)
+        {
+            throw new ParsingException(e);
+        }
+    }
+
+    /**
+     * Parses a YAML Array into a DataArray instance.
+     *
+     * @param  yaml
+     *         The correctly formatted YAML Array
+     *
+     * @throws net.dv8tion.jda.api.exceptions.ParsingException
+     *         If the provided YAML is incorrectly formatted
+     *
+     * @return A new DataArray instance for the provided array
+     */
+    @Nonnull
+    public static DataArray fromYaml(@Nonnull String yaml)
+    {
+        try
+        {
+            return new DataArray(yamlMapper.readValue(yaml, listType));
+        }
+        catch (IOException e)
+        {
+            throw new ParsingException(e);
+        }
+    }
+
+    /**
+     * Parses a YAML Array into a DataArray instance.
+     *
+     * @param  yaml
+     *         The correctly formatted YAML Array
+     *
+     * @throws net.dv8tion.jda.api.exceptions.ParsingException
+     *         If the provided YAML is incorrectly formatted
+     *
+     * @return A new DataArray instance for the provided array
+     */
+    @Nonnull
+    public static DataArray fromYaml(@Nonnull byte[] yaml)
+    {
+        try
+        {
+            return new DataArray(yamlMapper.readValue(yaml, listType));
+        }
+        catch (IOException e)
+        {
+            throw new ParsingException(e);
+        }
+    }
+
+    /**
+     * Parses a YAML Array into a DataArray instance.
+     *
+     * @param  yaml
+     *         The correctly formatted YAML Array
+     *
+     * @throws net.dv8tion.jda.api.exceptions.ParsingException
+     *         If the provided YAML is incorrectly formatted
+     *
+     * @return A new DataArray instance for the provided array
+     */
+    @Nonnull
+    public static DataArray fromYaml(@Nonnull InputStream yaml)
+    {
+        try
+        {
+            return new DataArray(yamlMapper.readValue(yaml, listType));
+        }
+        catch (IOException e)
+        {
+            throw new ParsingException(e);
+        }
+    }
+
+    /**
+     * Parses a YAML Array into a DataArray instance.
+     *
+     * @param  yaml
+     *         The correctly formatted YAML Array
+     *
+     * @throws net.dv8tion.jda.api.exceptions.ParsingException
+     *         If the provided YAML is incorrectly formatted
+     *
+     * @return A new DataArray instance for the provided array
+     */
+    @Nonnull
+    public static DataArray fromYaml(@Nonnull Reader yaml)
+    {
+        try
+        {
+            return new DataArray(yamlMapper.readValue(yaml, listType));
         }
         catch (IOException e)
         {

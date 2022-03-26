@@ -22,6 +22,8 @@ import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.type.MapType;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import net.dv8tion.jda.api.exceptions.ParsingException;
 import net.dv8tion.jda.api.utils.MiscUtil;
 import net.dv8tion.jda.api.utils.data.etf.ExTermDecoder;
@@ -52,6 +54,7 @@ public class DataObject implements SerializableData
 {
     private static final Logger log = LoggerFactory.getLogger(DataObject.class);
     private static final ObjectMapper mapper;
+    private static final ObjectMapper yamlMapper;
     private static final SimpleModule module;
     private static final MapType mapType;
 
@@ -62,6 +65,8 @@ public class DataObject implements SerializableData
         module.addAbstractTypeMapping(Map.class, HashMap.class);
         module.addAbstractTypeMapping(List.class, ArrayList.class);
         mapper.registerModule(module);
+        yamlMapper = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER));
+        yamlMapper.findAndRegisterModules();
         mapType = mapper.getTypeFactory().constructRawMapType(HashMap.class);
     }
 
@@ -127,6 +132,106 @@ public class DataObject implements SerializableData
         try
         {
             Map<String, Object> map = mapper.readValue(json, mapType);
+            return new DataObject(map);
+        }
+        catch (IOException ex)
+        {
+            throw new ParsingException(ex);
+        }
+    }
+
+    /**
+     * Parses a YAML payload into a DataObject instance.
+     *
+     * @param  yaml
+     *         The correctly formatted YAML payload to parse
+     *
+     * @throws net.dv8tion.jda.api.exceptions.ParsingException
+     *         If the provided YAML is incorrectly formatted
+     *
+     * @return A DataObject instance for the provided payload
+     */
+    @Nonnull
+    public static DataObject fromYaml(@Nonnull String yaml)
+    {
+        try
+        {
+            Map<String, Object> map = yamlMapper.readValue(yaml, mapType);
+            return new DataObject(map);
+        }
+        catch (IOException ex)
+        {
+            throw new ParsingException(ex);
+        }
+    }
+
+    /**
+     * Parses a YAML payload into a DataObject instance.
+     *
+     * @param  yaml
+     *         The correctly formatted YAML payload to parse
+     *
+     * @throws net.dv8tion.jda.api.exceptions.ParsingException
+     *         If the provided YAML is incorrectly formatted
+     *
+     * @return A DataObject instance for the provided payload
+     */
+    @Nonnull
+    public static DataObject fromYaml(@Nonnull byte[] yaml)
+    {
+        try
+        {
+            Map<String, Object> map = yamlMapper.readValue(yaml, mapType);
+            return new DataObject(map);
+        }
+        catch (IOException ex)
+        {
+            throw new ParsingException(ex);
+        }
+    }
+
+    /**
+     * Parses a YAML payload into a DataObject instance.
+     *
+     * @param  yaml
+     *         The correctly formatted YAML payload to parse
+     *
+     * @throws net.dv8tion.jda.api.exceptions.ParsingException
+     *         If the provided YAML is incorrectly formatted
+     *
+     * @return A DataObject instance for the provided payload
+     */
+    @Nonnull
+    public static DataObject fromYaml(@Nonnull InputStream yaml)
+    {
+        try
+        {
+            Map<String, Object> map = yamlMapper.readValue(yaml, mapType);
+            return new DataObject(map);
+        }
+        catch (IOException ex)
+        {
+            throw new ParsingException(ex);
+        }
+    }
+
+    /**
+     * Parses a YAML payload into a DataObject instance.
+     *
+     * @param  yaml
+     *         The correctly formatted YAML payload to parse
+     *
+     * @throws net.dv8tion.jda.api.exceptions.ParsingException
+     *         If the provided YAML is incorrectly formatted
+     *
+     * @return A DataObject instance for the provided payload
+     */
+    @Nonnull
+    public static DataObject fromYaml(@Nonnull Reader yaml)
+    {
+        try
+        {
+            Map<String, Object> map = yamlMapper.readValue(yaml, mapType);
             return new DataObject(map);
         }
         catch (IOException ex)
@@ -753,6 +858,18 @@ public class DataObject implements SerializableData
     {
         ByteBuffer buffer = ExTermEncoder.pack(data);
         return Arrays.copyOfRange(buffer.array(), buffer.arrayOffset(), buffer.arrayOffset() + buffer.limit());
+    }
+
+    @Nonnull
+    public String toYaml()
+    {
+        try
+        {
+            return yamlMapper.writeValueAsString(data);
+        } catch (JsonProcessingException e)
+        {
+            throw new ParsingException(e);
+        }
     }
 
     @Override
