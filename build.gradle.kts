@@ -125,6 +125,7 @@ dependencies {
     // Match the minor version of lavaplayers jackson dependency
     implementation("com.fasterxml.jackson.core:jackson-core:2.13.2")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.13.2.2")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.13.2")
 
     //Sets the dependencies for the examples
     configurations["examplesImplementation"].withDependencies {
