@@ -16,6 +16,9 @@
 
 package net.dv8tion.jda.api.interactions.commands.build;
 
+import net.dv8tion.jda.annotations.DeprecatedSince;
+import net.dv8tion.jda.annotations.ForRemoval;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.privileges.CommandPrivilege;
@@ -25,7 +28,9 @@ import net.dv8tion.jda.internal.interactions.CommandDataImpl;
 import net.dv8tion.jda.internal.utils.Checks;
 
 import javax.annotation.Nonnull;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.Map;
 
 /**
@@ -61,9 +66,77 @@ public interface CommandData extends SerializableData
      *         True, if this command is enabled by default for everyone. (Default: true)
      *
      * @return The builder instance, for chaining
+     *
+     * @deprecated This has been deprecated in favor of {@link #setDefaultPermissions(Collection)}
      */
+    @Deprecated
+    @ForRemoval
+    @DeprecatedSince("5.0.0")
     @Nonnull
     CommandData setDefaultEnabled(boolean enabled);
+
+    /**
+     * Sets the default {@link Permission Permissions} a user must have in order to see and use this command.
+     * <br>By default, everyone can use this command.
+     * <p>Passing {@code EnumSet.noneOf(Permission.class)} will deny everyone from using this command.
+     *
+     * @param permissions Collection of {@link Permission Permissions} a user must have to execute this command.
+     *
+     * @throws IllegalArgumentException
+     *         If any of the provided Permissions are null or {@link Permission#UNKNOWN UNKNOWN}.
+     *
+     * @return The builder instance, for chaining
+     */
+    @Nonnull
+    CommandData setDefaultPermissions(@Nonnull Collection<Permission> permissions);
+
+    /**
+     * Sets the default {@link Permission Permissions} a user must have in order to see and use this command.
+     * <br>By default, everyone can use this command.
+     * <p>Passing nothing will deny everyone from using this command.
+     *
+     * @param permissions Vararg of {@link Permission Permissions} a user must have to execute this command.
+     *
+     * @throws IllegalArgumentException
+     *         If any of the provided Permissions are null or {@link Permission#UNKNOWN UNKNOWN}.
+     *
+     * @return The builder instance, for chaining
+     */
+    @Nonnull
+    default CommandData setDefaultPermissions(@Nonnull Permission... permissions)
+    {
+        return setDefaultPermissions(Arrays.asList(permissions));
+    }
+
+    /**
+     * Sets the default raw permission bitfield representing the permissions a user must have in order to see and use this command.
+     * <br>By default, everyone can use this command.
+     * <p>Passing 0 will deny everyone from using this command.
+     *
+     * @param  raw Raw permission bitfield representing the permissions a user must have to execute this command.
+     *
+     * @throws IllegalArgumentException
+     *         If raw is smaller than 0
+     *
+     * @return The builder instance, for chaining
+     */
+    @Nonnull
+    default CommandData setDefaultPermissions(long raw)
+    {
+        Checks.check(raw >= 0, "Raw permissions cannot be smaller than 0!");
+        return setDefaultPermissions(Permission.getPermissions(raw));
+    }
+
+    /**
+     * Sets whether this command can be used in DMs.
+     * <br>This only has an effect if this command is registered globally.
+     *
+     * @param enabledInDMs Whether to enable this command in DMs
+     *
+     * @return The builder instance, for chaining
+     */
+    @Nonnull
+    CommandData setCommandEnabledInDMs(boolean enabledInDMs);
 
     /**
      * The current command name
@@ -80,7 +153,12 @@ public interface CommandData extends SerializableData
      *
      * @see    #setDefaultEnabled(boolean)
      * @see    CommandPrivilege
+     *
+     * @deprecated This has been deprecated in favor of {@link #getDefaultPermissions()}.
      */
+    @Deprecated
+    @ForRemoval
+    @DeprecatedSince("5.0.0")
     boolean isDefaultEnabled();
 
     /**
@@ -90,6 +168,39 @@ public interface CommandData extends SerializableData
      */
     @Nonnull
     Command.Type getType();
+
+    /**
+     * The raw permission bitfield representing the default Permissions of this command.
+     * <br>This is -1 if no permissions have been set, 0 would mean nobody can access the command.
+     *
+     * @return raw permission bitfield representing the default Permissions of this command.
+     */
+    long getDefaultPermissionsRaw();
+
+    /**
+     * The default {@link Permission Permissions} of this command.
+     * <br>A user will not be able to execute this command if he does not have any of these permissions.
+     *
+     * @return {@link EnumSet} of containing the default Permissions of this command.
+     */
+    @Nonnull
+    default EnumSet<Permission> getDefaultPermissions()
+    {
+        long defaultPermissions = getDefaultPermissionsRaw();
+        if (defaultPermissions == -1)
+            return EnumSet.noneOf(Permission.class);
+        if (defaultPermissions == 0)
+            return Permission.getPermissions(Permission.ALL_PERMISSIONS);
+        return Permission.getPermissions(getDefaultPermissionsRaw());
+    }
+
+    /**
+     * Whether the command can be accessed via Direct Messages.
+     * <br>If this is a guild-command, this has no effect.
+     *
+     * @return False, if the command cannot be used in DMs
+     */
+    boolean isCommandEnabledInDMs();
 
     /**
      * Converts the provided {@link Command} into a CommandData instance.
@@ -109,8 +220,7 @@ public interface CommandData extends SerializableData
     {
         Checks.notNull(command, "Command");
         if (command.getType() != Command.Type.SLASH)
-            return new CommandDataImpl(command.getType(), command.getName())
-                    .setDefaultEnabled(command.isDefaultEnabled());
+            return new CommandDataImpl(command.getType(), command.getName());
 
         return SlashCommandData.fromCommand(command);
     }

@@ -16,18 +16,20 @@
 
 package net.dv8tion.jda.internal.interactions;
 
+import net.dv8tion.jda.annotations.DeprecatedSince;
+import net.dv8tion.jda.annotations.ForRemoval;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.OptionData;
-import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
-import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
-import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData;
+import net.dv8tion.jda.api.interactions.commands.build.*;
 import net.dv8tion.jda.api.utils.data.DataArray;
 import net.dv8tion.jda.api.utils.data.DataObject;
 import net.dv8tion.jda.internal.utils.Checks;
 
 import javax.annotation.Nonnull;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -42,6 +44,8 @@ public class CommandDataImpl implements SlashCommandData
     private boolean allowOption = true;
     private boolean defaultPermissions = true; // whether the command uses default_permissions (blacklist/whitelist)
     private boolean allowRequired = true;
+    private boolean enabledInDMs = true;
+    private long defaultMemberPermissions = -1;
 
     private final Command.Type type;
 
@@ -77,6 +81,10 @@ public class CommandDataImpl implements SlashCommandData
                 .put("options", options);
         if (type == Command.Type.SLASH)
             json.put("description", description);
+        if (!enabledInDMs)
+            json.put("dm_permission", false);
+        if (defaultMemberPermissions != -1)
+            json.put("default_member_permissions", String.valueOf(defaultMemberPermissions));
         return json;
     }
 
@@ -85,6 +93,29 @@ public class CommandDataImpl implements SlashCommandData
     public Command.Type getType()
     {
         return type;
+    }
+
+    @Nonnull
+    @Override
+    public EnumSet<Permission> getDefaultPermissions()
+    {
+        if (defaultMemberPermissions == -1)
+            return EnumSet.noneOf(Permission.class);
+        if (defaultMemberPermissions == 0) // Setting it to 0 means nobody can access the command by default
+            return EnumSet.allOf(Permission.class);
+        return Permission.getPermissions(defaultMemberPermissions);
+    }
+
+    @Override
+    public long getDefaultPermissionsRaw()
+    {
+        return defaultMemberPermissions;
+    }
+
+    @Override
+    public boolean isCommandEnabledInDMs()
+    {
+        return enabledInDMs;
     }
 
     @Nonnull
@@ -115,6 +146,9 @@ public class CommandDataImpl implements SlashCommandData
                 .collect(Collectors.toList());
     }
 
+    @Deprecated
+    @ForRemoval
+    @DeprecatedSince("5.0.0")
     @Nonnull
     @Override
     public CommandDataImpl setDefaultEnabled(boolean enabled)
@@ -123,6 +157,27 @@ public class CommandDataImpl implements SlashCommandData
         return this;
     }
 
+    @Nonnull
+    @Override
+    public CommandData setDefaultPermissions(@Nonnull Collection<Permission> permissions)
+    {
+        Checks.noneNull(permissions, "Permissions");
+        permissions.forEach(permission -> Checks.check(permission != Permission.UNKNOWN, "Cannot use Permission#UNKNOWN!"));
+        defaultMemberPermissions = Permission.getRaw(permissions);
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public CommandData setCommandEnabledInDMs(boolean enabledInDMs)
+    {
+        this.enabledInDMs = enabledInDMs;
+        return this;
+    }
+
+    @Deprecated
+    @ForRemoval
+    @DeprecatedSince("5.0.0")
     @Override
     public boolean isDefaultEnabled()
     {

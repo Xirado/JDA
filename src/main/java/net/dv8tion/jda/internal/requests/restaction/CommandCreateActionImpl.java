@@ -15,8 +15,12 @@
  */
 package net.dv8tion.jda.internal.requests.restaction;
 
+import net.dv8tion.jda.annotations.DeprecatedSince;
+import net.dv8tion.jda.annotations.ForRemoval;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.interactions.commands.Command;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData;
@@ -33,6 +37,8 @@ import net.dv8tion.jda.internal.utils.Checks;
 import okhttp3.RequestBody;
 
 import javax.annotation.Nonnull;
+import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
@@ -79,9 +85,30 @@ public class CommandCreateActionImpl extends RestActionImpl<Command> implements 
 
     @Nonnull
     @Override
+    @Deprecated
+    @ForRemoval
+    @DeprecatedSince("5.0.0")
     public CommandCreateAction setDefaultEnabled(boolean enabled)
     {
         data.setDefaultEnabled(enabled);
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public CommandData setDefaultPermissions(@Nonnull Collection<Permission> permissions)
+    {
+        Checks.noneNull(permissions, "Permissions");
+        permissions.forEach(permission -> Checks.check(permission != Permission.UNKNOWN, "Cannot use Permission#UNKNOWN!"));
+        data.setDefaultPermissions(permissions);
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public CommandData setCommandEnabledInDMs(boolean enabledInDMs)
+    {
+        data.setCommandEnabledInDMs(enabledInDMs);
         return this;
     }
 
@@ -92,6 +119,9 @@ public class CommandCreateActionImpl extends RestActionImpl<Command> implements 
         return data.getName();
     }
 
+    @Deprecated
+    @ForRemoval
+    @DeprecatedSince("5.0.0")
     @Override
     public boolean isDefaultEnabled()
     {
@@ -103,6 +133,25 @@ public class CommandCreateActionImpl extends RestActionImpl<Command> implements 
     public Command.Type getType()
     {
         return data.getType();
+    }
+
+    @Nonnull
+    @Override
+    public EnumSet<Permission> getDefaultPermissions()
+    {
+        return data.getDefaultPermissions();
+    }
+
+    @Override
+    public long getDefaultPermissionsRaw()
+    {
+        return data.getDefaultPermissionsRaw();
+    }
+
+    @Override
+    public boolean isCommandEnabledInDMs()
+    {
+        return data.isCommandEnabledInDMs();
     }
 
     @Nonnull
