@@ -18,8 +18,10 @@ package net.dv8tion.jda.api.interactions.commands.build;
 
 import net.dv8tion.jda.annotations.DeprecatedSince;
 import net.dv8tion.jda.annotations.ForRemoval;
+import net.dv8tion.jda.annotations.ReplaceWith;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.interactions.commands.CommandPermission;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.privileges.CommandPrivilege;
 import net.dv8tion.jda.api.utils.data.DataObject;
@@ -28,9 +30,7 @@ import net.dv8tion.jda.internal.interactions.CommandDataImpl;
 import net.dv8tion.jda.internal.utils.Checks;
 
 import javax.annotation.Nonnull;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.Map;
 
 /**
@@ -67,20 +67,21 @@ public interface CommandData extends SerializableData
      *
      * @return The builder instance, for chaining
      *
-     * @deprecated This has been deprecated in favor of {@link #setDefaultPermissions(Collection)}
+     * @deprecated This has been deprecated in favor of {@link #setDefaultPermissions(CommandPermission)}
      */
+    @Nonnull
     @Deprecated
     @ForRemoval
     @DeprecatedSince("5.0.0")
-    @Nonnull
+    @ReplaceWith("CommandData#setDefaultPermissions(CommandPermission)")
     CommandData setDefaultEnabled(boolean enabled);
 
     /**
-     * Sets the default {@link Permission Permissions} a user must have in order to see and use this command.
+     * Sets the default {@link CommandPermission} for this command.
      * <br>By default, everyone can use this command.
-     * <p>Passing {@code EnumSet.noneOf(Permission.class)} will deny everyone from using this command.
+     * <p>Passing {@link CommandPermission#DISABLED} will only show this command to admins.
      *
-     * @param permissions Collection of {@link Permission Permissions} a user must have to execute this command.
+     * @param permission {@link CommandPermission} representing the default permissions of this command.
      *
      * @throws IllegalArgumentException
      *         If any of the provided Permissions are null or {@link Permission#UNKNOWN UNKNOWN}.
@@ -88,55 +89,18 @@ public interface CommandData extends SerializableData
      * @return The builder instance, for chaining
      */
     @Nonnull
-    CommandData setDefaultPermissions(@Nonnull Collection<Permission> permissions);
+    CommandData setDefaultPermissions(@Nonnull CommandPermission permission);
 
     /**
-     * Sets the default {@link Permission Permissions} a user must have in order to see and use this command.
-     * <br>By default, everyone can use this command.
-     * <p>Passing nothing will deny everyone from using this command.
-     *
-     * @param permissions Vararg of {@link Permission Permissions} a user must have to execute this command.
-     *
-     * @throws IllegalArgumentException
-     *         If any of the provided Permissions are null or {@link Permission#UNKNOWN UNKNOWN}.
-     *
-     * @return The builder instance, for chaining
-     */
-    @Nonnull
-    default CommandData setDefaultPermissions(@Nonnull Permission... permissions)
-    {
-        return setDefaultPermissions(Arrays.asList(permissions));
-    }
-
-    /**
-     * Sets the default raw permission bitfield representing the permissions a user must have in order to see and use this command.
-     * <br>By default, everyone can use this command.
-     * <p>Passing 0 will deny everyone from using this command.
-     *
-     * @param  raw Raw permission bitfield representing the permissions a user must have to execute this command.
-     *
-     * @throws IllegalArgumentException
-     *         If raw is smaller than 0
-     *
-     * @return The builder instance, for chaining
-     */
-    @Nonnull
-    default CommandData setDefaultPermissions(long raw)
-    {
-        Checks.check(raw >= 0, "Raw permissions cannot be smaller than 0!");
-        return setDefaultPermissions(Permission.getPermissions(raw));
-    }
-
-    /**
-     * Sets whether this command can be used in DMs.
+     * Sets whether this command is only usable in a guild.
      * <br>This only has an effect if this command is registered globally.
      *
-     * @param enabledInDMs Whether to enable this command in DMs
+     * @param guildOnly Whether to restrict this command to guilds
      *
      * @return The builder instance, for chaining
      */
     @Nonnull
-    CommandData setCommandEnabledInDMs(boolean enabledInDMs);
+    CommandData setGuildOnly(boolean guildOnly);
 
     /**
      * The current command name
@@ -159,6 +123,7 @@ public interface CommandData extends SerializableData
     @Deprecated
     @ForRemoval
     @DeprecatedSince("5.0.0")
+    @ReplaceWith("CommandData#getDefaultPermissions")
     boolean isDefaultEnabled();
 
     /**
@@ -170,37 +135,21 @@ public interface CommandData extends SerializableData
     Command.Type getType();
 
     /**
-     * The raw permission bitfield representing the default Permissions of this command.
-     * <br>This is -1 if no permissions have been set, 0 would mean nobody can access the command.
+     * Gets the {@link CommandPermission} of this command.
+     * <br>If no permissions have been set, this returns {@link CommandPermission#ENABLED}.
      *
-     * @return raw permission bitfield representing the default Permissions of this command.
-     */
-    long getDefaultPermissionsRaw();
-
-    /**
-     * The default {@link Permission Permissions} of this command.
-     * <br>A user will not be able to execute this command if he does not have any of these permissions.
-     *
-     * @return {@link EnumSet} of containing the default Permissions of this command.
+     * @return CommandPermission of this command.
      */
     @Nonnull
-    default EnumSet<Permission> getDefaultPermissions()
-    {
-        long defaultPermissions = getDefaultPermissionsRaw();
-        if (defaultPermissions == -1)
-            return EnumSet.noneOf(Permission.class);
-        if (defaultPermissions == 0)
-            return Permission.getPermissions(Permission.ALL_PERMISSIONS);
-        return Permission.getPermissions(getDefaultPermissionsRaw());
-    }
+    CommandPermission getDefaultPermissions();
 
     /**
-     * Whether the command can be accessed via Direct Messages.
+     * Whether the command can only be used inside a guild.
      * <br>If this is a guild-command, this has no effect.
      *
-     * @return False, if the command cannot be used in DMs
+     * @return False, if the command is not restricted to guilds.
      */
-    boolean isCommandEnabledInDMs();
+    boolean isGuildOnly();
 
     /**
      * Converts the provided {@link Command} into a CommandData instance.
@@ -220,7 +169,8 @@ public interface CommandData extends SerializableData
     {
         Checks.notNull(command, "Command");
         if (command.getType() != Command.Type.SLASH)
-            return new CommandDataImpl(command.getType(), command.getName());
+            return new CommandDataImpl(command.getType(), command.getName())
+                    .setDefaultEnabled(command.isDefaultEnabled());
 
         return SlashCommandData.fromCommand(command);
     }

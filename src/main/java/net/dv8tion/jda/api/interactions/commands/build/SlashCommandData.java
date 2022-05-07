@@ -19,6 +19,7 @@ package net.dv8tion.jda.api.interactions.commands.build;
 import net.dv8tion.jda.annotations.DeprecatedSince;
 import net.dv8tion.jda.annotations.ForRemoval;
 import net.dv8tion.jda.api.events.interaction.command.CommandAutoCompleteInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.CommandPermission;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.utils.data.DataArray;
@@ -39,12 +40,20 @@ public interface SlashCommandData extends CommandData
     @Override
     SlashCommandData setName(@Nonnull String name);
 
+    @Nonnull
+    @Override
     @Deprecated
     @ForRemoval
     @DeprecatedSince("5.0.0")
+    SlashCommandData setDefaultEnabled(boolean enabled);
+
     @Nonnull
     @Override
-    SlashCommandData setDefaultEnabled(boolean enabled);
+    SlashCommandData setDefaultPermissions(@Nonnull CommandPermission permission);
+
+    @Nonnull
+    @Override
+    SlashCommandData setGuildOnly(boolean guildOnly);
 
     /**
      * Configure the description
@@ -337,10 +346,9 @@ public interface SlashCommandData extends CommandData
             throw new IllegalArgumentException("Cannot convert command of type " + command.getType() + " to SlashCommandData!");
 
         CommandDataImpl data = new CommandDataImpl(command.getName(), command.getDescription());
-        if (!command.isCommandEnabledInDMs())
-            data.setCommandEnabledInDMs(false);
-        if (command.getDefaultPermissionsRaw() != -1)
-            data.setDefaultPermissions(command.getDefaultPermissionsRaw());
+        if (command.isGuildOnly())
+            data.setGuildOnly(true);
+        data.setDefaultPermissions(command.getDefaultPermissions());
         command.getOptions()
                 .stream()
                 .map(OptionData::fromOption)
@@ -385,9 +393,14 @@ public interface SlashCommandData extends CommandData
         String description = object.getString("description");
         DataArray options = object.optArray("options").orElseGet(DataArray::empty);
         CommandDataImpl command = new CommandDataImpl(name, description);
-        command.setCommandEnabledInDMs(object.getBoolean("dm_permission", true));
-        if (!object.isNull("default_member_permissions"))
-            command.setDefaultPermissions(object.getLong("default_member_permissions"));
+        command.setGuildOnly(!object.getBoolean("dm_permission", true));
+
+        command.setDefaultPermissions(
+                object.isNull("default_member_permissions")
+                        ? CommandPermission.ENABLED
+                        : CommandPermission.enabledFor(object.getLong("default_member_permissions"))
+        );
+
         options.stream(DataArray::getObject).forEach(opt ->
         {
             OptionType type = OptionType.fromKey(opt.getInt("type"));
