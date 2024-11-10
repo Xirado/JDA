@@ -310,6 +310,10 @@ public class PermissionUtil
     {
         Checks.notNull(member, "Member");
 
+        if (member.isDetached())
+            throw new IllegalStateException("Cannot get the effective permissions of a detached member without a channel. " +
+                    "Instead, please use the Member methods while supplying a GuildChannel");
+
         if (member.isOwner())
             return ALL_PERMISSIONS;
         //Default to binary OR of all global permissions in this guild
@@ -351,6 +355,10 @@ public class PermissionUtil
         Checks.notNull(member, "Member");
 
         Checks.check(channel.getGuild().equals(member.getGuild()), "Provided channel and provided member are not of the same guild!");
+
+        if (member.isDetached())
+            throw new IllegalStateException("Cannot get the effective permissions of a detached member. " +
+                    "Instead, please use the Member methods while supplying a GuildChannel");
 
         if (member.isOwner())
         {
@@ -413,8 +421,7 @@ public class PermissionUtil
         Checks.notNull(channel, "Channel");
         Checks.notNull(role, "Role");
 
-        Guild guild = channel.getGuild();
-        if (!guild.equals(role.getGuild()))
+        if (!channel.getGuild().equals(role.getGuild()))
             throw new IllegalArgumentException("Provided channel and role are not of the same guild!");
 
         long permissions = getExplicitPermission(channel, role);
@@ -447,6 +454,10 @@ public class PermissionUtil
     public static long getExplicitPermission(Member member)
     {
         Checks.notNull(member, "Member");
+
+        if (member.isDetached())
+            throw new IllegalStateException("Cannot get the explicit permissions of a detached member without a channel. " +
+                    "Instead, please use the Member methods while supplying a GuildChannel");
 
         final Guild guild = member.getGuild();
         long permission = guild.getPublicRole().getPermissionsRaw();
@@ -519,8 +530,11 @@ public class PermissionUtil
         Checks.notNull(channel, "Channel");
         Checks.notNull(member, "Member");
 
-        final Guild guild = member.getGuild();
-        checkGuild(channel.getGuild(), guild, "Member");
+        checkGuild(channel.getGuild(), member.getGuild(), "Member");
+
+        if (member.isDetached())
+            throw new IllegalStateException("Cannot get the explicit permissions of a detached member. " +
+                    "Instead, please use the Member methods while supplying a GuildChannel");
 
         long permission = includeRoles ? getExplicitPermission(member) : 0L;
 
@@ -590,6 +604,11 @@ public class PermissionUtil
     {
         Checks.notNull(channel, "Channel");
         Checks.notNull(role, "Role");
+
+        // Can't know exactly what the role's permissions in that channel are, since we don't have the overrides.
+        if (role.isDetached())
+            throw new IllegalStateException("Cannot get the explicit permissions of a detached role");
+
         IPermissionContainer permsChannel = channel.getPermissionContainer();
 
         final Guild guild = role.getGuild();
