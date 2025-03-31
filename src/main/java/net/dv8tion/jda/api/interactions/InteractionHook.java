@@ -17,10 +17,6 @@
 package net.dv8tion.jda.api.interactions;
 
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.components.Component;
-import net.dv8tion.jda.api.components.MessageTopLevelComponent;
-import net.dv8tion.jda.api.components.MessageTopLevelComponentUnion;
-import net.dv8tion.jda.api.components.tree.ComponentTree;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -28,12 +24,12 @@ import net.dv8tion.jda.api.entities.WebhookClient;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.interactions.callbacks.IMessageEditCallback;
 import net.dv8tion.jda.api.interactions.callbacks.IReplyCallback;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.requests.restaction.WebhookMessageEditAction;
 import net.dv8tion.jda.api.utils.AttachedFile;
 import net.dv8tion.jda.api.utils.FileUpload;
 import net.dv8tion.jda.api.utils.messages.MessageEditData;
-import net.dv8tion.jda.api.utils.messages.MessageRequest;
 import net.dv8tion.jda.internal.interactions.InteractionHookImpl;
 import net.dv8tion.jda.internal.utils.Checks;
 
@@ -79,6 +75,39 @@ public interface InteractionHook extends WebhookClient<Message>
      */
     @Nonnull
     Interaction getInteraction();
+
+    /**
+     * The {@link CallbackResponseUnion callback response} created by interaction replies like {@link IReplyCallback#reply(String)}
+     * or interaction updates like {@link IMessageEditCallback#editMessage(String)}.
+     *
+     * <p><b>Example</b>
+     * <pre>
+     * {@code
+     * event.reply("foobar").queue(hook -> {
+     *     var messageId = hook.getCallbackResponse().asMessage().getIdLong();
+     *     System.out.println(messageId);
+     * });}
+     * </pre>
+     *
+     * @throws IllegalStateException
+     *         If this interaction has not yet been acknowledged.
+     *
+     * @return {@link CallbackResponseUnion}
+     *
+     * @see    #hasCallbackResponse()
+     */
+    @Nonnull
+    CallbackResponseUnion getCallbackResponse();
+
+    /**
+     * Whether this InteractionHook contains a {@link CallbackResponseUnion callback response}.
+     * <br>This will be <code>false</code> if the interaction has not yet been acknowledged.
+     *
+     * @return True, if this InteractionHook contains a callback response
+     *
+     * @see    #getCallbackResponse()
+     */
+    boolean hasCallbackResponse();
 
     /**
      * The unix millisecond timestamp for the expiration of this interaction hook.
@@ -209,15 +238,10 @@ public interface InteractionHook extends WebhookClient<Message>
      * </ul>
      *
      * @param  components
-     *         The {@link MessageTopLevelComponent MessageTopLevelComponents} to set, can be empty to remove components,
-     *         can contain up to {@value Message#MAX_COMPONENT_COUNT} V1 components in total,
-     *         or {@value Message#MAX_COMPONENT_COUNT_COMPONENTS_V2} in total for {@linkplain MessageRequest#isUsingComponentsV2() V2 components}
+     *         The new component layouts for this message, such as {@link ActionRow ActionRows}
      *
      * @throws IllegalArgumentException
-     *         <ul>
-     *             <li>If {@code null} is provided</li>
-     *             <li>If any of the provided components are not {@linkplain Component.Type#isMessageCompatible() compatible with messages}</li>
-     *         </ul>
+     *         If the provided components are null, or more than 5 layouts are provided
      *
      * @return {@link WebhookMessageEditAction}
      */
